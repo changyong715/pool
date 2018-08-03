@@ -74,6 +74,23 @@ void threadpool_add(threadpool_t *pool, void *(*pf)(void*), void *arg)
 // 销毁线程池
 void threadpool_destroy(threadpool_t *pool)
 {
+	 if(pool->counter)
+        return;
+    condition_lock(&pool->ready);//加锁
+    pool->quit=1;
+    if(pool->counter>0)
+    {
+        if(pool->idle>0)//空闲线程
+        {
+            condition_boardcast(&pool->ready);
+        }
+        while(pool->counter>0)
+        {
+            condition_wait(&pool->ready);
+        }
+    }
+    condition_unlock(&pool->ready);
+    condition_destroy(&pool->ready);
 }
 
 
